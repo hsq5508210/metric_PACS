@@ -47,34 +47,38 @@ class Model:
             self.support_y = input_tensor['support_set'][1]
             self.query_x = input_tensor['query_set'][0]
             self.query_y = input_tensor['query_set'][1]
-        with tf.variable_scope('model', reuse=None) as training_socpe:
-            if 'weights' in dir(self):
-                training_socpe.reuse_variables()
-                weights = self.weights
-            else:
-                self.weights = weights = self.construct_weights()
+        # with tf.variable_scope('model', reuse=True) as training_socpe:
+        if 'weights' in dir(self):
+            # training_socpe.reuse_variables()
+            weights = self.weights
+        else:
+            self.weights = weights = self.construct_weights()
 
 
         accurcy = []
         losses = []
         # print(weights['conv1'].eval())
     def trainop(self):
-        if 'weights' not in dir(self):
-            self.weights = weights = self.construct_weights() 
+        # if 'weights' not in dir(self):
+        #     self.weights = weights = self.construct_weights()
         # else:
         #     self.construct_model()
-        print("support y name is:", self.support_y.name)
+        # print("support y name is:", self.support_y.name)
         losses, acc = self.get_loss((self.support_x, self.support_y, self.query_x, self.query_y), self.weights)
         if FLAGS.train:
-            self.loss = loss = tf.reduce_sum(losses) / tf.to_float(FLAGS.query_num * FLAGS.model * FLAGS.way_num)
+            self.loss = loss = tf.reduce_sum(losses) / tf.to_float(FLAGS.support_num * FLAGS.model * FLAGS.way_num)
             # self.train = tf.train.AdamOptimizer(self.lr).minimize(loss)
+            # lr = tf.constant(self.lr, dtype=tf.float32)
             optimizer = tf.train.AdamOptimizer(self.lr)
             self.gvs = gvs = optimizer.compute_gradients(loss)
             # if FLAGS.data_source == 'PACS':
             #     gvs = [(tf.clip_by_value(grad, -10, 10, var)) for grad, var in gvs]
-            self.train = optimizer.apply_gradients(gvs)
-        return self.train
+            # self.train = optimizer.minimize(loss)
 
+            self.train = optimizer.apply_gradients(gvs)
+
+        return self.train, self.loss
+        # return self.loss
 
 
 
@@ -97,23 +101,26 @@ class Model:
         weights = {}
         dtype = tf.float32
         conv_initializer =  tf.contrib.layers.xavier_initializer_conv2d(dtype=dtype)
-        fc_initializer =  tf.contrib.layers.xavier_initializer(dtype=dtype)
         k = 3
         weights['conv1'] = tf.get_variable('conv1', [k, k, self.channels, self.dim_hidden], initializer=conv_initializer, dtype=dtype)
-        weights['b1'] = tf.Variable(tf.zeros([self.dim_hidden]))
+        weights['b1'] = tf.Variable(tf.zeros([self.dim_hidden]), name='b1')
         weights['conv2'] = tf.get_variable('conv2', [k, k, self.dim_hidden, self.dim_hidden], initializer=conv_initializer, dtype=dtype)
-        weights['b2'] = tf.Variable(tf.zeros([self.dim_hidden]))
+        weights['b2'] = tf.Variable(tf.zeros([self.dim_hidden]), name='b2')
         weights['conv3'] = tf.get_variable('conv3', [k, k, self.dim_hidden, self.dim_hidden], initializer=conv_initializer, dtype=dtype)
-        weights['b3'] = tf.Variable(tf.zeros([self.dim_hidden]))
+        weights['b3'] = tf.Variable(tf.zeros([self.dim_hidden]), name='b3')
         weights['conv4'] = tf.get_variable('conv4', [k, k, self.dim_hidden, self.dim_hidden], initializer=conv_initializer, dtype=dtype)
-        weights['b4'] = tf.Variable(tf.zeros([self.dim_hidden]))
+        weights['b4'] = tf.Variable(tf.zeros([self.dim_hidden]), name='b4')
         return weights
 
 
-    def forward_conv(self, inp, weights, reuse=False):
+    def forward_conv(self, inp, weights, reuse=True):
         # support_x = self.support_x
         # query_x = self.query_x
         scope = ''
+        # hidden1 = conv_block(inp, weights['conv1'], weights['b1'], reuse, scope+'0')
+        # hidden2 = conv_block(hidden1, weights['conv2'], weights['b2'], reuse, scope+'1')
+        # hidden3 = conv_block(hidden2, weights['conv3'], weights['b3'], reuse, scope+'2')
+        # hidden4 = conv_block(hidden3, weights['conv4'], weights['b4'], reuse, scope+'3')
         hidden1 = conv_block(inp, weights['conv1'], weights['b1'], reuse, scope+'0')
         hidden2 = conv_block(hidden1, weights['conv2'], weights['b2'], reuse, scope+'1')
         hidden3 = conv_block(hidden2, weights['conv3'], weights['b3'], reuse, scope+'2')

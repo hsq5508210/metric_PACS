@@ -182,7 +182,7 @@ def get_loss(out_put, label):
 # images, labels = make_set_tensor(x['support'])
 # # print(x)
 # with tf.Session() as sess:
-#     tf.local_variables_initializer().run()
+#     tf.local_beta2_powers_initializer().run()
 #     threads = tf.train.start_queue_runners(sess=sess)
 #     for _ in x['support']['data']:
 #         img = images.eval().shape
@@ -230,7 +230,7 @@ def distance(x, y, onehot_label):
         distance = inner_product(x, y)
     # distance = tf.exp(-distance)
     # d = tf.map_fn(fn=lambda s:tf.fill(value=s, dims=onehot_label.shape), elems=distance)
-    d = tf.map_fn(fn=lambda s:tf.fill(value=s, dims=(FLAGS.model*FLAGS.query_num*FLAGS.way_num, FLAGS.way_num)), elems=distance)
+    d = tf.map_fn(fn=lambda s:tf.fill(value=s, dims=(FLAGS.way_num, )), elems=distance)
     return d
 def get_dist_category(x, y, onehot_label):
     dist = distance(x, y, onehot_label[0])
@@ -240,7 +240,7 @@ def get_dist_category(x, y, onehot_label):
 def mse(pred, label):
     # pred = tf.reshape(pred, [-1])
     # label = tf.reshape(label, [-1])
-    return tf.reduce_mean(tf.square(pred-label), axis=0)
+    return tf.reduce_mean(tf.square(pred-label), axis=1)
 
 def xent(pred, label):
     # Note - with tf version <=0.12, this loss has incorrect 2nd derivatives
